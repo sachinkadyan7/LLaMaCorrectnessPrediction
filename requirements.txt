@@ -1,0 +1,8 @@
+# torch libraries using separate in drive instructions
+
+python-dotenv
+ipykernel
+accelerate>=0.26.0
+transformers
+sentencepiece
+pandas
