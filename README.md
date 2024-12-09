@@ -25,3 +25,8 @@ TODO:
 - Setup inference mechanism with capture of the hidden states and attention maps
 
 
+
+Issues:
+![alt text](image.png)
+
+How to handle the fact that capital letters like A, B, C, D have multiple token representations? Seems like we can't filter the output probs by specific dict entries. Unless we know for sure that " A" is the correct output token instead of "A" for Llama. 

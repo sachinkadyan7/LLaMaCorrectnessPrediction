@@ -1,1 +1,3 @@
-mmlu_data_clean_json/**/*
+.data/**/*
+.output/**/*
+.env
