@@ -36,7 +36,7 @@ def get_activations(
         # join all the letters that show up just so that == comes up as false if we have a degenerate answer with multiple letters. 
         guess = "".join(intersection)
     
-    if len(answers) == 2:
+    if len(answers) >= 2:
         outputs = model(inputs.input_ids, output_hidden_states=True, output_attentions=True)
         attentions, activations = outputs["attentions"], outputs["hidden_states"]
     else:
