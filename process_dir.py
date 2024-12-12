@@ -45,6 +45,7 @@ if __name__ == "__main__":
 
     model = LlamaForCausalLM.from_pretrained(model_name, device_map="cuda", torch_dtype=torch.bfloat16)
     tokenizer = AutoTokenizer.from_pretrained(model_name)
+    tokenizer.pad_token_id  = tokenizer.eos_token_id
     model.eval()
 
     for f in input_dir.glob("*.json"):
