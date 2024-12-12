@@ -24,7 +24,7 @@ def get_activations(
 
     inputs = tokenizer(text, return_tensors="pt").to(model.device)
 
-    generate_ids = model.generate(inputs.input_ids, max_new_tokens=max_new_tokens, output_hidden_states=True, output_attentions=True)
+    generate_ids = model.generate(inputs.input_ids, attention_mask=inputs.attention_mask, max_new_tokens=max_new_tokens, output_hidden_states=True, output_attentions=True)
     answers = tokenizer.decode(generate_ids[0][inputs.input_ids.shape[1]:]).split()
 
     # vocabulary indices for B are 33 but also 426 which is rly weird. 426 is the output one it seems. 
