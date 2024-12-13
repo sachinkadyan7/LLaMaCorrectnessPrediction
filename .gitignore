@@ -1,3 +1,4 @@
 .data/**/*
 .output/**/*
 .env
+lightning_logs/**/*

@@ -3,12 +3,13 @@ import os
 from transformers import LlamaForCausalLM
 import torch
 
+from typing import List
 
 def save_activation(activation, activation_save_path, file_name, suffix="activations"):
     if not os.path.exists(activation_save_path):
         os.makedirs(activation_save_path)
 
-    activation_save_path = os.path.join(activation_save_path, f"{os.path.splitext(file_name)[0]}_{suffix}.pt")
+    activation_save_path = os.path.join(activation_save_path, f"{file_name}_{suffix}.pt")
 
     torch.save(activation, activation_save_path)
 
@@ -42,55 +43,67 @@ def get_activations(
     else:
         attentions, activations = None, None
 
+
     if save_activations:
         save_activation(activations, os.path.join(output_dir, "activations"), file_name, suffix="activations")
         save_activation(attentions, os.path.join(output_dir, "attentions"), file_name, suffix="attentions")       
 
+    torch.cuda.empty_cache() 
     return answers, attentions, activations, guess
 
 
 def get_batch_activations(
         model: LlamaForCausalLM,
         tokenizer: transformers.PreTrainedTokenizer,
-        text: str, 
+        text: List[str], 
         output_dir: str,
         batch_name: str="",
         bs=16,
+        ignore_attentions: bool = False,
+        ignore_activations: bool = False,
+        filter_activations: bool = False,
         save_activations: bool = True):
     
-    tokenizer.pad_token = tokenizer.eos_token
-    tokenizer.padding_side = "left"
-    inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True, max_length=512, return_attention_mask=True).to(model.device)
-
-    generate_ids = model.generate(
-        inputs.input_ids, 
-        max_new_tokens=1, 
-        output_hidden_states=True, 
-        output_attentions=True,
-        eos_token_id=tokenizer.eos_token_id,
-        attention_mask=inputs.attention_mask
-        )
-    answers = [tokenizer.decode(generate_ids[i, -1]).strip() for i in range(bs)]
-
-
-    # vocabulary indices for "B" is 33, and " B" is 426 which is rly weird. Based on experimentation, " B" is the output one but I cant be sure. 
-    guesses = [answer if answer in ["A", "B", "C", "D"] else None for answer in answers]
-
     with torch.no_grad():
-        outputs = model(inputs.input_ids, output_hidden_states=True, output_attentions=True, attention_mask=inputs.attention_mask)
+        tokenizer.pad_token = tokenizer.eos_token
+        tokenizer.padding_side = "left"
+        inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True, max_length=512, return_attention_mask=True).to(model.device)
 
-    attentions, activations = [], []
-    for i in range(bs):
-        if guesses[i] is not None:
-            attentions.append(outputs["attentions"][i])
-            activations.append(outputs["hidden_states"][i])
-        else:
-            attentions.append(None)
-            activations.append(None)
-    
-    if save_activations:
-        save_activation(activations, os.path.join(output_dir, "activations"), batch_name, suffix="activations")
-        save_activation(attentions, os.path.join(output_dir, "attentions"), batch_name, suffix="attentions")   
+        generate_ids = model.generate(
+            inputs.input_ids, 
+            max_new_tokens=1, 
+            output_hidden_states=True, 
+            output_attentions=True,
+            eos_token_id=tokenizer.eos_token_id,
+            attention_mask=inputs.attention_mask,
+            cache_implementation="offloaded"
+            )
+        
+        answers = [tokenizer.decode(generate_ids[i, -1]).strip() for i in range(bs)]
 
-    return answers, attentions, activations, guesses
+        # vocabulary indices for "B" is 33, and " B" is 426 which is rly weird. Based on experimentation, " B" is the output one but I cant be sure. 
+        guesses = [answer if answer in ["A", "B", "C", "D"] else None for answer in answers]
+
+        outputs = model(inputs.input_ids, output_hidden_states=not ignore_activations, output_attentions=not ignore_attentions, attention_mask=inputs.attention_mask)
+
+        if not ignore_attentions:
+            attentions = outputs["attentions"] if not ignore_attentions else None
+            if save_activations:
+                save_activation(attentions, os.path.join(output_dir, "attentions"), batch_name, suffix="attentions")   
+            del attentions
+
+        if not ignore_activations:
+            activations = outputs["hidden_states"] if not ignore_activations else None
+            activations = torch.stack([activations[i] for i in (1, 11, 21, 31)], dim=0)
+            activations = activations.permute(1, 0, 2, 3) # activations now have shape (batch_size, num_layers, seq_len, hidden_size)
+            activations = activations[:, :, -1, :] # activations now have shape (batch_size, num_layers, hidden_size)
+
+            if save_activations:
+                save_activation(activations, os.path.join(output_dir, "activations"), batch_name, suffix="activations")
+            del activations
+        
+        del inputs, outputs, generate_ids
+        torch.cuda.empty_cache()
+
+    return answers, None, None, guesses
 
