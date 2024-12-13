@@ -84,7 +84,7 @@ if __name__ == "__main__":
     reasoning_cat = os.path.join(mmlu_dir, "arc_hard.csv")
 
     factoid_output = os.path.join(output_path, "science_elementary")
-    reasoning_output = os.path.join(output_path, "abstract_algebra")
+    reasoning_output = os.path.join(output_path, "arc_hard")
 
     dotenv.load_dotenv()
     token = os.getenv("HUGGINGFACE_TOKEN")
@@ -97,12 +97,12 @@ if __name__ == "__main__":
     prompts_fact = pd.read_csv(factoid_cat)
     prompts_fact = prompts_fact[prompts_fact["Prompt"].apply(lambda x: len(x) < 512)]
     results_fact = test_batch_get_activations(model, tokenizer, prompts_fact, factoid_output, batch_size=32)
-    results_fact.to_csv(output_path + "factoid_results.csv")
+    results_fact.to_csv(output_path + "science_elementary.csv")
     
     prompts_res = pd.read_csv(reasoning_cat)
     prompts_res = prompts_res[prompts_res["Prompt"].apply(lambda x: len(x) < 512)]
     results_res = test_batch_get_activations(model, tokenizer, prompts_res, reasoning_output, batch_size=32)
-    results_res.to_csv(output_path + "reasoning_results.csv")
+    results_res.to_csv(output_path + "arc_hard.csv")
     
     #test_get_activations(model=model, tokenizer=tokenizer, prompts=prompts, output_path=output_path)
     #test_batch_get_activations(model=model, tokenizer=tokenizer, prompts=prompts, output_path=output_path)
