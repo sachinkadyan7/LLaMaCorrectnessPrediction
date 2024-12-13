@@ -30,3 +30,10 @@ Issues:
 ![alt text](image.png)
 
 How to handle the fact that capital letters like A, B, C, D have multiple token representations? Seems like we can't filter the output probs by specific dict entries. Unless we know for sure that " A" is the correct output token instead of "A" for Llama. 
+
+
+- in bfloat16 (2 bytes), a set of attentions relating to a single model pass takes the form of a tuple of 32 tensors (1 per layer) which have shape (batch_size=1, num_heads=32, seq_len, seq_len). So, for a seq of len 134 in my case its a total object of 32 * 32 * 134 * 134 elements each of size 2 bytes, so 36773888 (36 Mb). Huge...
+- extend that to dataset of 500 elements: 18386944000 18 GB
+
+- in bfloat16 (2 bytes), a set of activations relating to a single model pass takes the form of a tuple of 32 tensors (1 per layer) which have shape (batch_size=1, num_heads=32, seq_len, seq_len). So, for a seq of len 134 in my case its a total object of 32 * 32 * 134 * 134 elements each of size 2 bytes, so 36773888 (36 Mb). Huge...
+- extend that to dataset of 500 elements: 18386944000 18 GB

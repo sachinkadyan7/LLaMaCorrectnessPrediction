@@ -9,6 +9,8 @@ import dotenv
 import os
 import torch
 
+from pathlib import Path
+
 PROMPT_MAP = lambda x: f"""
 Please answer the following question with a single letter: A, B, C, or D.
 
@@ -40,30 +42,67 @@ def test_get_activations(model, tokenizer, prompts, output_path):
     return df
 
 
-def test_batch_get_activations(model, tokenizer, prompts, output_path):
+def test_batch_get_activations(model, tokenizer, prompts, output_path, batch_size):
+    prompts["Final Prompt"] = prompts.apply(lambda row: PROMPT_MAP(row), axis=1)
 
+    batch_idx = 0
     
-    batched_prompts = [PROMPT_MAP(question) for i, question in enumerate(prompts.values()) if i < 16]
-    labels = [question["Answer"] for i, question in enumerate(prompts.values()) if i < 16]
-    answers, attentions, activations, guesses = get_batch_activations(model, tokenizer, batched_prompts, output_dir=output_path, batch_name="test_batch", bs=16)
+    full_answers, full_guesses = [], []
+    while batch_idx * batch_size < prompts.shape[0]:
+        print(f"Batch {batch_idx}...")
+        l, r = batch_idx * batch_size, (batch_idx + 1) * batch_size
 
-    df = pd.DataFrame.from_dict({"Predicted Answer": guesses, "Full Answer": answers, "Prompt": batched_prompts, "Correct Answer": labels})
+        batch_prompts = prompts['Final Prompt'][l: r].tolist()
+        bs = len(batch_prompts)
+        answers, _, _, guesses = get_batch_activations(
+            model, 
+            tokenizer, 
+            batch_prompts, 
+            output_dir=output_path, 
+            batch_name=batch_idx, 
+            bs=bs, 
+            ignore_activations=False,
+            ignore_attentions=True,
+            save_activations=True)
+
+        full_answers.extend(answers)
+        full_guesses.extend(guesses)
+
+        batch_idx += 1
+
+    df = pd.DataFrame.from_dict({"Predicted Answer": full_guesses, "Full Answer": full_answers, "Prompts": prompts['Final Prompt'], "Correct Answer": prompts['Answer']})
+
     return df
 
 
 if __name__ == "__main__":
-    example_dir = ".data\\mmlu_data_clean_json\\auxiliary_train\\arc_easy.json"
-
+    mmlu_dir = Path.home() / "Downloads\\mmlu_data_clean\\auxiliary_train\\"
     output_path = ".output/"
+
+
+    factoid_cat = os.path.join(mmlu_dir, "science_elementary.csv")
+    reasoning_cat = os.path.join(mmlu_dir, "arc_hard.csv")
+
+    factoid_output = os.path.join(output_path, "science_elementary")
+    reasoning_output = os.path.join(output_path, "abstract_algebra")
+
     dotenv.load_dotenv()
     token = os.getenv("HUGGINGFACE_TOKEN")
     model_name = "meta-llama/Meta-Llama-3-8B"
-    with open(example_dir, "r") as f:
-        prompts = json.load(f)
 
     model = LlamaForCausalLM.from_pretrained(model_name, device_map="cuda", torch_dtype=torch.bfloat16, token=token)
     tokenizer = AutoTokenizer.from_pretrained(model_name, token=token)
     model.eval()
 
+    prompts_fact = pd.read_csv(factoid_cat)
+    prompts_fact = prompts_fact[prompts_fact["Prompt"].apply(lambda x: len(x) < 512)]
+    results_fact = test_batch_get_activations(model, tokenizer, prompts_fact, output_path, batch_size=32)
+    results_fact.to_csv(output_path + "factoid_results.csv")
+    
+    prompts_res = pd.read_csv(reasoning_cat)
+    prompts_res = prompts_res[prompts_res["Prompt"].apply(lambda x: len(x) < 512)]
+    results_res = test_batch_get_activations(model, tokenizer, prompts_res, output_path, batch_size=32)
+    results_res.to_csv(output_path + "reasoning_results.csv")
+    
     #test_get_activations(model=model, tokenizer=tokenizer, prompts=prompts, output_path=output_path)
     #test_batch_get_activations(model=model, tokenizer=tokenizer, prompts=prompts, output_path=output_path)
