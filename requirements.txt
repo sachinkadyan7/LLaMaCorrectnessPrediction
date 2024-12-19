@@ -9,3 +9,4 @@ pandas
 matplotlib
 seaborn
 pytorch-lightning
+scikit-learn
