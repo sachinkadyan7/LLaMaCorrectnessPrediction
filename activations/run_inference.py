@@ -75,8 +75,10 @@ def get_batch_activations(
         ids = outputs["logits"][:, -1].argmax(dim=1)
 
         if not ignore_attentions:
-            # TODO Sachin implement your processing logic for the attentions
-            attentions = outputs["attentions"] if not ignore_attentions else None
+            attentions = outputs["attentions"]
+            attentions = torch.stack(attentions, dim=0)
+            attentions = attentions.permute(1, 0, 2, 3, 4) # attentions now have shape (batch_size, num_layers, num_heads, seq_len, seq_len)
+            attentions = attentions[0, :, :, :, :] # attentions now have shape (num_layers, num_heads, seq_len, seq_len)
             if save_activations:
                 save_activation(attentions, os.path.join(output_dir, "attentions"), batch_name, suffix="attentions")   
             del attentions
