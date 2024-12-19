@@ -69,29 +69,17 @@ def get_batch_activations(
         tokenizer.padding_side = "left"
         inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True, max_length=512, return_attention_mask=True).to(model.device)
 
-        generate_ids = model.generate(
-            inputs.input_ids, 
-            max_new_tokens=1, 
-            output_hidden_states=True, 
-            output_attentions=True,
-            eos_token_id=tokenizer.eos_token_id,
-            attention_mask=inputs.attention_mask,
-            cache_implementation="offloaded"
-            )
-        
-        answers = [tokenizer.decode(generate_ids[i, -1]).strip() for i in range(bs)]
-
-        # vocabulary indices for "B" is 33, and " B" is 426 which is rly weird. Based on experimentation, " B" is the output one but I cant be sure. 
-        guesses = [answer if answer in ["A", "B", "C", "D"] else None for answer in answers]
 
         outputs = model(inputs.input_ids, output_hidden_states=not ignore_activations, output_attentions=not ignore_attentions, attention_mask=inputs.attention_mask)
 
+        ids = outputs["logits"][:, -1].argmax(dim=1)
+
         if not ignore_attentions:
+            # TODO Sachin implement your processing logic for the attentions
             attentions = outputs["attentions"] if not ignore_attentions else None
             if save_activations:
                 save_activation(attentions, os.path.join(output_dir, "attentions"), batch_name, suffix="attentions")   
             del attentions
-
         if not ignore_activations:
             activations = outputs["hidden_states"] if not ignore_activations else None
             activations = torch.stack([activations[i] for i in (1, 11, 21, 31)], dim=0)
@@ -101,9 +89,15 @@ def get_batch_activations(
             if save_activations:
                 save_activation(activations, os.path.join(output_dir, "activations"), batch_name, suffix="activations")
             del activations
+
         
-        del inputs, outputs, generate_ids
+        answers = [tokenizer.decode(ids[i]).strip() for i in range(bs)]
+
+        # vocabulary indices for "B" is 33, and " B" is 426 which is rly weird. Based on experimentation, " B" is the output one but I cant be sure. 
+        guesses = [answer if answer in ["A", "B", "C", "D"] else None for answer in answers]
+        
+        del inputs, outputs, ids
         torch.cuda.empty_cache()
 
-    return answers, None, None, guesses
+    return answers, guesses
 
