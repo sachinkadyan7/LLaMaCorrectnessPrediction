@@ -10,3 +10,5 @@ matplotlib
 seaborn
 pytorch-lightning
 scikit-learn
+torchmetrics
+tqdm
