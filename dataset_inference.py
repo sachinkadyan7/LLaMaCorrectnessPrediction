@@ -96,7 +96,7 @@ if __name__ == "__main__":
 
     prompts_fact = pd.read_json(factoid_cat, orient='index')
     results_fact = test_batch_get_activations(model, tokenizer, prompts_fact, factoid_output_path, batch_size=1)
-    results_fact.to_json(os.path.join(factoid_output_path, "science_elementary.csv"), orient="index", indent=1)
+    results_fact.to_json(os.path.join(factoid_output_path, "science_elementary.json"), orient="index", indent=1)
     
     prompts_res = pd.read_json(reasoning_cat, orient='index')
     results_res = test_batch_get_activations(model, tokenizer, prompts_res, reasoning_output_path, batch_size=1)
