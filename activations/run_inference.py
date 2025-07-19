@@ -84,7 +84,7 @@ def get_batch_activations(
             del attentions
         if not ignore_activations:
             activations = outputs["hidden_states"] if not ignore_activations else None
-            activations = torch.stack([activations[i] for i in (1, 11, 21, 31)], dim=0)
+            activations = torch.stack([layer for layer in activations], dim=0)
             activations = activations.permute(1, 0, 2, 3) # activations now have shape (batch_size, num_layers, seq_len, hidden_size)
             activations = activations[:, :, -1, :] # activations now have shape (batch_size, num_layers, hidden_size)
 
