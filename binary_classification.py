@@ -6,9 +6,9 @@ from torch.utils.data import Dataset, DataLoader
 from torchmetrics.classification import Accuracy, F1Score, Precision, Recall
 
 
-class SimpleNN(pl.LightningModule):
+class SimpleNNClassifier(pl.LightningModule):
     def __init__(self, input_size=4096, hidden_size=8):
-        super(SimpleNN, self).__init__()
+        super(SimpleNNClassifier, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.fc1 = nn.Linear(input_size, hidden_size)

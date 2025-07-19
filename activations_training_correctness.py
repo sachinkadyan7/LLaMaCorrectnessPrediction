@@ -1,7 +1,7 @@
-
+'''Trains a Classifier to Predict Correctness from LLM Layer Activations'''
 from activations_loaders import BatchFileDataset, collate_fn, split_datasets
 from torch.utils.data import DataLoader
-from binary_classification import SimpleNN
+from binary_classification import SimpleNNClassifier
 from layer_classifier import LayerNN
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -17,7 +17,7 @@ def train_model(cat, layer, task, max_epochs=5):
     train_loader, val_loader, test_loader = split_datasets(data_loader, task=task)
 
     if task == "correctness":
-        model = SimpleNN(input_size=4096, hidden_size=8).to('cuda:0')
+        model = SimpleNNClassifier(input_size=4096, hidden_size=8).to('cuda:0')
     elif task == "layer":
         model = LayerNN(input_size=4096, hidden_size=8).to('cuda:0')
 
