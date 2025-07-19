@@ -61,8 +61,8 @@ def test_batch_get_activations(model, tokenizer, prompts, output_path, batch_siz
             output_dir=output_path, 
             batch_name=batch_idx, 
             bs=bs, 
-            ignore_activations=True,
-            ignore_attentions=False,
+            ignore_activations=False,
+            ignore_attentions=True,
             save_activations=True)
 
         full_answers.extend(answers)
