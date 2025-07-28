@@ -39,9 +39,9 @@ def run_prompts(model, tokenizer, prompts, output_path):
 
 if __name__ == "__main__":
     split = "auxiliary_train"
-    input_dir = Path.home() / f"Downloads/mmlu_data_clean_json/{split}/"
+    input_dir = Path.cwd().parent / f"mmlu_data_clean_json/{split}/"
 
-    output_path = Path.home() / f"Downloads/mmlu_output/{split}/"
+    output_path = Path.cwd().parent / f"mmlu_output/{split}/"
     model_name = "meta-llama/Meta-Llama-3-8B"
 
     model = LlamaForCausalLM.from_pretrained(model_name, device_map="cuda", torch_dtype=torch.bfloat16)
